@@ -22,7 +22,7 @@ window.initGame = function(fetchedQuestions) {
 function loadNextQuestion() {
     if (gameState.currentIndex >= gameState.questions.length) {
         alert(`Session Complete! Final Score: ${gameState.score}`);
-        return location.reload();
+        return resetGameToStart();
     }
 
     gameState.isAnswering = false;
@@ -105,3 +105,32 @@ document.addEventListener('DOMContentLoaded', () => {
         loadNextQuestion();
     });
 });
+
+function resetGameToStart() {
+    // 1. Clear the game state
+    gameState.questions = [];
+    gameState.currentIndex = 0;
+    gameState.score = 0;
+    gameState.timeRemaining = 10;
+    clearInterval(gameState.timerId);
+
+    // 2. Reset the digital displays and drawer
+    if (typeof updateDisplays === 'function') updateDisplays(10, 0);
+    if (typeof toggleDrawer === 'function') toggleDrawer(false);
+    
+    // 3. Reset the upload progress bar UI
+    const progressContainer = document.getElementById('progress-container');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const progressText = document.getElementById('progress-text');
+    if (progressContainer) progressContainer.classList.add('hidden');
+    if (progressBarFill) progressBarFill.style.width = "0%";
+    if (progressText) progressText.textContent = "0% - Awaiting upload...";
+    
+    // 4. Swap the CSS classes to reveal the start screen
+    document.getElementById('game-view').classList.replace('active', 'hidden');
+    document.getElementById('upload-view').classList.replace('hidden', 'active');
+    
+    // 5. Clear the file input so a new PDF can be selected
+    const fileInput = document.getElementById('pdf-upload');
+    if (fileInput) fileInput.value = "";
+}

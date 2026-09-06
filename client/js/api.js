@@ -31,7 +31,7 @@ async function handleUploadAndGenerate() {
 
     try {
         // 2. Open Stream via POST request (Make sure your backend is running on port 3000)
-        const response = await fetch('http://localhost:3000/upload-and-generate', {
+        const response = await fetch('https://bim-manager-trivia.onrender.com/upload-and-generate', {
             method: 'POST',
             body: formData
         });

@@ -68,6 +68,20 @@
         </aside>
     </section>
 
+    <!-- Result and Retake -->
+    <section id="results-view" class="view-container hidden">
+        <div class="upload-card pill-shape" style="text-align: center;">
+            <h1>Session Complete!</h1>
+            <p>Your final active-recall score:</p>
+            <h2 id="final-score-display" style="color: var(--gold-accent); font-size: 3.5rem; margin: 1rem 0;">0 PTS</h2>
+            
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button id="retake-btn" class="gold-btn">Retake Test</button>
+                <button id="new-pdf-btn" class="gold-btn" style="background-color: transparent; border: 1px solid var(--gold-accent);">Upload New PDF</button>
+            </div>
+        </div>
+    </section>
+    
     <!-- Logic Scripts -->
     <script src="js/engine.js"></script>
     <script src="js/api.js"></script>

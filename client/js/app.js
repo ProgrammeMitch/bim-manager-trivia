@@ -20,9 +20,9 @@ window.initGame = function(fetchedQuestions) {
 };
 
 function loadNextQuestion() {
+    // Replaced location.reload() with state routing
     if (gameState.currentIndex >= gameState.questions.length) {
-        alert(`Session Complete! Final Score: ${gameState.score}`);
-        return resetGameToStart();
+        return showResults();
     }
 
     gameState.isAnswering = false;
@@ -73,13 +73,11 @@ function handleSelection(btn, selectedOpt, questionData) {
     if (typeof highlightAnswer === 'function') highlightAnswer(btn, isCorrect);
 
     if (isCorrect) {
-        // Pull logic from engine.js
         const earned = typeof calculatePoints === 'function' ? calculatePoints(gameState.timeRemaining, 10) : 0;
         gameState.score = typeof updateScore === 'function' ? updateScore(gameState.score, earned) : gameState.score + earned;
         if (typeof updateDisplays === 'function') updateDisplays(gameState.timeRemaining, gameState.score);
     }
 
-    // Format the AI explanation with clear line breaks
     const feedbackHeader = isCorrect ? '<span style="color: var(--correct-green)">CORRECT!</span>' : '<span style="color: var(--incorrect-red)">INCORRECT.</span>';
     const explanationHtml = `<strong>${feedbackHeader}</strong><br><br>${questionData.explanation.replace(/\n/g, '<br>')}`;
     
@@ -93,44 +91,42 @@ function handleTimeOut() {
     if (typeof toggleDrawer === 'function') toggleDrawer(true, explanationHtml);
 }
 
-// Bind Drawer Navigation Buttons
+function showResults() {
+    document.getElementById('game-view').classList.replace('active', 'hidden');
+    document.getElementById('results-view').classList.replace('hidden', 'active');
+    document.getElementById('final-score-display').textContent = `${gameState.score} PTS`;
+}
+
+function retakeQuiz() {
+    // Shuffle the cached array so the retake isn't in the exact same order
+    for (let i = gameState.questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [gameState.questions[i], gameState.questions[j]] = [gameState.questions[j], gameState.questions[i]];
+    }
+
+    gameState.currentIndex = 0;
+    gameState.score = 0;
+    
+    document.getElementById('results-view').classList.replace('active', 'hidden');
+    document.getElementById('game-view').classList.replace('hidden', 'active');
+    
+    loadNextQuestion();
+}
+
+// Bind Global Navigation & Reset Buttons
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('next-question-btn')?.addEventListener('click', () => {
+        if (typeof toggleDrawer === 'function') toggleDrawer(false); // Force drawer closed on next
         gameState.currentIndex++;
         loadNextQuestion();
     });
     
     document.getElementById('close-drawer-btn')?.addEventListener('click', () => {
+        if (typeof toggleDrawer === 'function') toggleDrawer(false);
         gameState.currentIndex++;
         loadNextQuestion();
     });
+
+    document.getElementById('retake-btn')?.addEventListener('click', retakeQuiz);
+    document.getElementById('new-pdf-btn')?.addEventListener('click', () => location.reload());
 });
-
-function resetGameToStart() {
-    // 1. Clear the game state
-    gameState.questions = [];
-    gameState.currentIndex = 0;
-    gameState.score = 0;
-    gameState.timeRemaining = 10;
-    clearInterval(gameState.timerId);
-
-    // 2. Reset the digital displays and drawer
-    if (typeof updateDisplays === 'function') updateDisplays(10, 0);
-    if (typeof toggleDrawer === 'function') toggleDrawer(false);
-    
-    // 3. Reset the upload progress bar UI
-    const progressContainer = document.getElementById('progress-container');
-    const progressBarFill = document.getElementById('progress-bar-fill');
-    const progressText = document.getElementById('progress-text');
-    if (progressContainer) progressContainer.classList.add('hidden');
-    if (progressBarFill) progressBarFill.style.width = "0%";
-    if (progressText) progressText.textContent = "0% - Awaiting upload...";
-    
-    // 4. Swap the CSS classes to reveal the start screen
-    document.getElementById('game-view').classList.replace('active', 'hidden');
-    document.getElementById('upload-view').classList.replace('hidden', 'active');
-    
-    // 5. Clear the file input so a new PDF can be selected
-    const fileInput = document.getElementById('pdf-upload');
-    if (fileInput) fileInput.value = "";
-}

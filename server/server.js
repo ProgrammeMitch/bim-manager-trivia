@@ -1,26 +1,24 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Make sure path is required
 const generateRoutes = require('./routes/generateRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const path = require('path');
-
-// Tell Express to serve all files from your 'client' directory
-app.use(express.static(path.join(__dirname, '../client')));
-
-// Catch-all route to serve your main HTML file when users hit the root URL
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/index.html'));
-});
-
 // Middleware
-// CORS is required because your frontend and backend will run on different local ports during testing
 app.use(cors()); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 1. Serve static files from the client folder
+app.use(express.static(path.join(__dirname, '../client')));
+
+// 2. Explicitly serve index.html on the root URL (This replaces the broken '*' wildcard)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/index.html'));
+});
 
 // Mount the upload and generation pipeline
 app.use('/', generateRoutes);

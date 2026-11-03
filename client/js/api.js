@@ -1,9 +1,25 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+    initializeBetaAccess();
+
     const startBtn = document.getElementById('start-btn');
     if (startBtn) {
         startBtn.addEventListener('click', handleUploadAndGenerate);
     }
 });
+
+function initializeBetaAccess() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailFromUrl = urlParams.get('user');
+
+    if (emailFromUrl) {
+        // Save the email to localStorage 
+        localStorage.setItem('betaUserEmail', emailFromUrl.toLowerCase().trim());
+        
+        // Clean the URL bar so the user doesn't see '?user=xxx'
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
 
 async function handleUploadAndGenerate() {
     const fileInput = document.getElementById('pdf-upload');
@@ -12,6 +28,12 @@ async function handleUploadAndGenerate() {
     const progressBarFill = document.getElementById('progress-bar-fill');
     const progressText = document.getElementById('progress-text');
     const startBtn = document.getElementById('start-btn');
+
+    const userEmail = localStorage.getItem('betaUserEmail');
+    if (!userEmail) {
+        alert("Access Denied: Please use the secure beta link sent to your email.");
+        return;
+    }
 
     if (!fileInput.files || fileInput.files.length === 0) {
         alert("Please upload a PDF document to begin.");
@@ -31,10 +53,21 @@ async function handleUploadAndGenerate() {
 
     try {
         // 2. Open Stream via POST request (Make sure your backend is running on port 3000)
-        const response = await fetch('http://localhost:3000/upload-and-generate', {
+        const response = await fetch('https://bim-manager-trivia.onrender.com/upload-and-generate', {
             method: 'POST',
+            headers: {
+                'x-user-email': userEmail // Sends the email to generateRoutes.js
+            },
             body: formData
         });
+
+        if (response.status === 403) {
+            const errorData = await response.json();
+            alert(errorData.error);
+            localStorage.removeItem('betaUserEmail'); // Delete expired session
+            location.reload(); // Reset UI immediately
+            return;
+        }
 
         if (!response.body) throw new Error("ReadableStream not supported by this browser.");
 

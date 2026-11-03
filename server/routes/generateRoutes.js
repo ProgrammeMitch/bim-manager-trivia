@@ -1,14 +1,42 @@
 const express = require('express');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const { extractAndDiscardPDF } = require('../services/pdfService');
 const { sampleChunks } = require('../utils/mathSampler');
 const { generateQuestionFromChunk } = require('../services/agentService');
 const router = express.Router();
 
+// Path to allowlist JSON file
+const allowlistPath = path.join(__dirname, '../utils/allowlist.json');
+
+// Middleware to check if the email is allowed
+function verifyBetaAccess(req, res, next) {
+    const userEmail = req.headers['x-user-email'];
+
+    if (!userEmail) {
+        return res.status(403).json({ error: 'Access denied: No beta email provided.' });
+    }
+
+    try {
+        const rawData = fs.readFileSync(allowlistPath, 'utf8');
+        const allowedEmails = JSON.parse(rawData);
+
+        if (allowedEmails.includes(userEmail.toLowerCase().trim())) {
+            next(); 
+        } else {
+            return res.status(403).json({ error: 'Access denied: Email not on the active beta list or has expired.' });
+        }
+    } catch (error) {
+        console.error('Error reading allowlist.json:', error);
+        return res.status(500).json({ error: 'Server error verifying access.' });
+    }
+}
+
 // Configure Multer for temporary storage
 const upload = multer({ dest: 'temp_uploads/' });
 
-router.post('/upload-and-generate', upload.single('document'), async (req, res) => {
+router.post('/upload-and-generate', verifyBetaAccess, upload.single('document'), async (req, res) => {
     // 1. Establish SSE Connection
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');

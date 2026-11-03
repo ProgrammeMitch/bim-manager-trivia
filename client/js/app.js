@@ -129,8 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('retake-btn')?.addEventListener('click', retakeQuiz);
     document.getElementById('new-pdf-btn')?.addEventListener('click', () => location.reload());
-<<<<<<< HEAD
+
 });
-=======
-});
->>>>>>> 90bcf464089e20f8f714e543dcdbaa68a39356cf
+

@@ -8,7 +8,9 @@ const { generateQuestionFromChunk } = require('../services/agentService');
 const router = express.Router();
 
 // Path to allowlist JSON file
-const allowlistPath = path.join(__dirname, '../utils/allowlist.json');
+const allowlistPath = process.env.RENDER 
+    ? '/etc/secrets/allowlist.json' 
+    : path.join(__dirname, '../utils/allowlist.json');
 
 // Middleware to check if the email is allowed
 function verifyBetaAccess(req, res, next) {

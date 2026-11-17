@@ -90,7 +90,7 @@ async function handleUploadAndGenerate(injectedFile = null) {
             const errorData = await response.json();
             alert(errorData.error);
             localStorage.removeItem('betaUserEmail');
-            location.reload(); 
+            location.reload();
             return;
         }
 
@@ -99,6 +99,7 @@ async function handleUploadAndGenerate(injectedFile = null) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let isStreaming = true;
+        let buffer = '';
 
         while (isStreaming) {
             const { done, value } = await reader.read();
@@ -107,39 +108,52 @@ async function handleUploadAndGenerate(injectedFile = null) {
                 break;
             }
 
-            const chunk = decoder.decode(value, { stream: true });
-            const events = chunk.split('\n\n');
-            
-            for (const event of events) {
-                if (event.startsWith('data: ')) {
-                    const jsonStr = event.substring(6);
-                    if (!jsonStr.trim()) continue;
+            // Add the new chunk to our buffer
+            buffer += decoder.decode(value, { stream: true });
 
-                    try {
-                        const parsed = JSON.parse(jsonStr);
-                        
-                        progressBarFill.style.width = `${parsed.progress}%`;
-                        progressText.textContent = `${parsed.progress}% - ${parsed.status}`;
+            // Look for the SSE message separator
+            let boundary = buffer.indexOf('\n\n');
 
-                        if (parsed.status === "COMPLETE") {
-                            sessionStorage.setItem('bimTriviaCache', JSON.stringify(parsed.data));
-                            
-                            // 3. Pause Workflow: Swap buttons instead of auto-starting
-                            window.generatedQuestions = parsed.data;
-                            startBtn.classList.add('hidden');
-                            sampleBtn.parentElement.classList.add('hidden');
-                            
-                            const startQuizBtn = document.getElementById('start-quiz-btn');
-                            startQuizBtn.classList.remove('hidden');
-                            progressText.textContent = "100% - Ready! Take a breath, then click Start.";
-                            
-                        } else if (parsed.status === "ERROR") {
-                            throw new Error(parsed.data.message || "AI extraction failed.");
+            // Process complete messages as long as we find separators
+            while (boundary !== -1) {
+                // Extract the complete event string
+                const eventStr = buffer.slice(0, boundary);
+                // Remove the processed event from the buffer
+                buffer = buffer.slice(boundary + 2);
+
+                if (eventStr.startsWith('data: ')) {
+                    const jsonStr = eventStr.substring(6);
+                    if (jsonStr.trim()) {
+
+                        try {
+                            const parsed = JSON.parse(jsonStr);
+
+                            progressBarFill.style.width = `${parsed.progress}%`;
+                            progressText.textContent = `${parsed.progress}% - ${parsed.status}`;
+
+                            if (parsed.status === "COMPLETE") {
+                                sessionStorage.setItem('bimTriviaCache', JSON.stringify(parsed.data));
+
+                                // 3. Pause Workflow: Swap buttons instead of auto-starting
+                                window.generatedQuestions = parsed.data;
+                                startBtn.classList.add('hidden');
+                                sampleBtn.parentElement.classList.add('hidden');
+
+                                const startQuizBtn = document.getElementById('start-quiz-btn');
+                                startQuizBtn.classList.remove('hidden');
+                                progressText.textContent = "100% - Ready! Take a breath, then click Start.";
+
+                            } else if (parsed.status === "ERROR") {
+                                throw new Error(parsed.data.message || "AI extraction failed.");
+                            }
+                        } catch (parseError) {
+                            console.warn("[Stream Parse Warning]: Incomplete chunk received.");
                         }
-                    } catch (parseError) {
-                        console.warn("[Stream Parse Warning]: Incomplete chunk received.");
                     }
                 }
+
+                // Check if there's another complete message waiting in the buffer
+                boundary = buffer.indexOf('\n\n');
             }
         }
     } catch (error) {
@@ -149,6 +163,6 @@ async function handleUploadAndGenerate(injectedFile = null) {
     } finally {
         startBtn.disabled = false;
         startBtn.textContent = "Generate Questions";
-        if(sampleBtn) sampleBtn.innerText = "Play Saved ISO PDF";
+        if (sampleBtn) sampleBtn.innerText = "Play Saved ISO PDF";
     }
 }

@@ -3,25 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIM Manager Trivia</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>Morta | BIM Competency Training</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
 
-    <!-- Upload & Extraction Screen -->
+    <!-- Onboarding & Settings Screen -->
     <section id="upload-view" class="view-container active">
-        <div class="upload-card pill-shape">
-            <h1>BIM Manager Training</h1>
-            <p>Upload a standard or guideline PDF to generate your session.</p>
-            <input type="file" id="pdf-upload" accept="application/pdf">
-            <input type="number" id="question-count" value="20" min="5" max="50">
-            <button id="start-btn" class="gold-btn">Generate Questions</button>
+        <div class="upload-card">
+            <h1>BIM Competency Training</h1>
+            <p class="main-subtitle">A Morta Educational Concept</p>
+
+            <!-- Assessment Intensity (Chunking) -->
+            <div class="settings-group">
+                <h3>Assessment Intensity</h3>
+                <p class="subtitle">Higher intensity extracts more data chunks and generates more questions.</p>
+                <input type="number" id="chunk-input" min="5" max="25" value="10" class="number-input" />
+            </div>
+
+            <!-- Timer Selection -->
+            <div class="settings-group">
+                <h3>Set Timer</h3>
+                <p class="subtitle">Choose your difficulty. Faster times yield higher score multipliers.</p>
+                <div class="timer-options">
+                    <button class="timer-btn" data-time="10">10s (3x Pts)</button>
+                    <button class="timer-btn" data-time="20">20s (2x Pts)</button>
+                    <button class="timer-btn active" data-time="30">30s (1x Pts)</button>
+                </div>
+            </div>
+
+            <!-- Standard PDF Upload -->
+            <div class="settings-group">
+                <h3>Upload Project Standard</h3>
+                <p class="subtitle">Upload a BEP, EIR, or ISO document to generate a custom assessment.</p>
+                <input type="file" id="pdf-upload" accept="application/pdf" class="file-input">
+            </div>
+
+            <!-- Sample PDF / Frictionless Entry -->
+            <div class="settings-group sample-section">
+                <h3>Don't have a PDF handy?</h3>
+                <p class="subtitle">Run a quick simulation using our pre-loaded ISO 19650 template.</p>
+                <button id="play-sample-btn" class="secondary-btn">Play Saved ISO PDF</button>
+            </div>
+
+            <!-- Action & Generation Buttons -->
+            <div class="action-group">
+                <button id="generate-btn" class="primary-btn">Generate Questions</button>
+                <button id="start-quiz-btn" class="primary-btn hidden">Start Quiz</button>
+            </div>
+
+            <!-- Loading State -->
             <div id="progress-container" class="hidden">
                 <div class="progress-bar-bg"><div id="progress-bar-fill"></div></div>
-                <p id="progress-text">0% - Awaiting upload...</p>
+                <p id="progress-text">0% - Awaiting generation...</p>
             </div>
         </div>
     </section>
@@ -30,7 +67,7 @@
     <section id="game-view" class="view-container hidden">
         <header class="game-header">
             <div class="digital-display timer-display">
-                ⏱ TIME: <span id="time-left">10</span>s
+                ⏱ TIME: <span id="time-left">30</span>s
             </div>
             <div class="digital-display score-display">
                 🏆 SCORE: <span id="current-score">0000</span> PTS
@@ -38,11 +75,9 @@
         </header>
 
         <main class="trivia-board">
-            <h2 id="question-tracker">QUESTION 1 / 20</h2>
+            <h2 id="question-tracker">QUESTION 1 / 10</h2>
             <div class="question-pill">
-                <span class="ornament">?</span>
                 <p id="question-text">Loading question...</p>
-                <span class="ornament">?</span>
             </div>
 
             <div class="options-grid">
@@ -63,28 +98,25 @@
                 <!-- AI Explanation injected here -->
             </div>
             <div class="drawer-footer">
-                <button id="next-question-btn" class="gold-btn">NEXT QUESTION</button>
+                <button id="next-question-btn" class="primary-btn">NEXT QUESTION</button>
             </div>
         </aside>
     </section>
-
-    <!-- Add this just below the </section> of the #game-view -->
     
     <!-- Results & Retake Screen -->
     <section id="results-view" class="view-container hidden">
-        <div class="upload-card pill-shape" style="text-align: center;">
+        <div class="upload-card" style="text-align: center;">
             <h1>Session Complete!</h1>
-            <p>Your final active-recall score:</p>
-            <h2 id="final-score-display" style="color: var(--gold-accent); font-size: 3.5rem; margin: 1rem 0;">0 PTS</h2>
+            <p class="subtitle" style="margin-top: 0.5rem;">Your final active-recall score:</p>
+            <h2 id="final-score-display" style="color: var(--morta-blue); font-size: 3.5rem; margin: 1.5rem 0;">0 PTS</h2>
             
-            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
-                <button id="retake-btn" class="gold-btn">Retake Test</button>
-                <button id="new-pdf-btn" class="gold-btn" style="background-color: transparent; border: 1px solid var(--gold-accent);">Upload New PDF</button>
+            <div class="action-group" style="margin-top: 2rem;">
+                <button id="retake-btn" class="primary-btn">Retake Test</button>
+                <button id="new-pdf-btn" class="secondary-btn">Upload New PDF</button>
             </div>
         </div>
     </section>
     
-    <!-- Logic Scripts -->
     <script src="js/engine.js"></script>
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>

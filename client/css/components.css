@@ -1,33 +1,92 @@
-/* Digital Displays (Timer & Score) */
+/* Typography & Headers */
+h1 { color: var(--morta-slate); margin-bottom: 0.5rem; font-size: 2rem; }
+h3 { color: var(--morta-slate); font-size: 1.1rem; margin-bottom: 0.3rem; }
+.main-subtitle { color: var(--morta-blue); font-weight: 600; margin-bottom: 2rem; }
+.subtitle { color: #6B7280; font-size: 0.9rem; }
+
+/* Form Inputs */
+.file-input, .number-input {
+    display: block;
+    width: 100%;
+    margin-top: 0.8rem;
+    padding: 0.8rem;
+    background: #F9FAFB;
+    border: 1px solid var(--morta-border);
+    color: var(--morta-slate);
+    border-radius: 8px;
+    font-family: var(--font-body);
+}
+
+/* Buttons */
+.primary-btn {
+    background-color: var(--morta-blue);
+    color: var(--morta-surface);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+.primary-btn:hover { background-color: var(--morta-blue-hover); }
+
+.secondary-btn {
+    background-color: var(--morta-slate);
+    color: var(--morta-surface);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+.secondary-btn:hover { background-color: #000000; }
+
+.timer-btn {
+    flex: 1;
+    padding: 0.8rem;
+    border: 2px solid var(--morta-border);
+    background: transparent;
+    color: var(--morta-slate);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.timer-btn.active {
+    background-color: var(--morta-blue);
+    color: var(--morta-surface);
+    border-color: var(--morta-blue);
+}
+
+/* Digital Displays */
 .digital-display {
     font-family: var(--font-digital);
-    font-size: 1.5rem;
-    color: var(--gold-accent);
-    border: 2px solid var(--gold-accent);
-    padding: 0.5rem 1rem;
+    font-size: 1.1rem;
+    color: var(--morta-slate);
+    background-color: var(--morta-surface);
+    border: 1px solid var(--morta-border);
+    padding: 0.6rem 1rem;
     border-radius: 8px;
-    background-color: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 10px var(--gold-glow);
-    text-shadow: 0 0 5px var(--gold-accent);
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-/* Question & Option Pills */
-.question-pill, .option-pill {
-    background-color: var(--pill-blue);
-    border: 3px solid var(--gold-accent);
-    border-radius: 50px;
-    box-shadow: inset 0 0 15px rgba(0,0,0,0.5), 0 4px 6px rgba(0,0,0,0.3);
-    color: white;
-}
-
+/* Game Pills */
 .question-pill {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background-color: var(--morta-surface);
+    border: 2px solid var(--morta-blue);
+    border-radius: 12px;
+    color: var(--morta-slate);
     padding: 1.5rem 2rem;
     margin-bottom: 2rem;
     font-size: 1.2rem;
     text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.04);
 }
 
 .option-pill {
@@ -36,116 +95,75 @@
     padding: 1rem 1.5rem;
     font-size: 1.1rem;
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: all 0.2s;
     width: 100%;
+    background-color: var(--morta-surface);
+    border: 1px solid var(--morta-border);
+    border-radius: 8px;
+    color: var(--morta-slate);
+    text-align: left;
 }
+.option-pill:hover { border-color: var(--morta-blue); background-color: #F0F5FE; }
+.option-pill:active { transform: scale(0.98); }
 
-.option-pill:active {
-    transform: scale(0.98);
+.option-pill.correct { border-color: var(--correct-green); background-color: #F0FDF4; }
+.option-pill.incorrect { border-color: var(--incorrect-red); background-color: #FEF2F2; }
+
+.opt-label { color: var(--morta-blue); margin-right: 1rem; font-weight: 700; }
+
+/* Progress Bar */
+.progress-bar-bg {
+    width: 100%;
+    height: 12px;
+    background-color: var(--morta-border);
+    border-radius: 6px;
+    margin: 1.5rem 0 0.5rem 0;
+    overflow: hidden;
 }
-
-.option-pill.correct {
-    border-color: var(--correct-green);
-    box-shadow: 0 0 15px var(--correct-green);
+#progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background-color: var(--morta-blue);
+    transition: width 0.3s ease-out;
 }
+#progress-text { font-size: 0.9rem; color: var(--morta-slate); text-align: center; font-weight: 600; }
 
-.option-pill.incorrect {
-    border-color: var(--incorrect-red);
-    box-shadow: 0 0 15px var(--incorrect-red);
-}
-
-.opt-label {
-    color: var(--gold-accent);
-    margin-right: 1rem;
-    font-weight: bold;
-}
-
-/* Bottom Sliding Drawer */
+/* Feedback Drawer */
 #feedback-drawer {
     position: fixed;
-    bottom: 0;
-    left: 0;
+    bottom: 0; left: 0;
     width: 100%;
-    height: 55vh;
-    background-color: var(--bg-deep-blue);
-    border-top: 3px solid var(--gold-accent);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+    height: 60vh;
+    background-color: var(--morta-surface);
+    border-top: 4px solid var(--morta-blue);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 100;
 }
+.drawer-hidden { transform: translateY(100%); }
+.drawer-active { transform: translateY(0); }
 
-.drawer-hidden {
-    transform: translateY(100%);
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--morta-border);
 }
-
-.drawer-active {
-    transform: translateY(0);
+#close-drawer-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--morta-slate);
+    cursor: pointer;
 }
-
 .drawer-content {
     padding: 1.5rem;
     overflow-y: auto;
     flex-grow: 1;
-    font-size: 1rem;
     line-height: 1.6;
 }
-
-.gold-btn {
-    background-color: transparent;
-    color: var(--gold-accent);
-    border: 2px solid var(--gold-accent);
-    padding: 0.8rem 2rem;
-    border-radius: 30px;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-}
-.gold-btn:hover {
-    background-color: var(--gold-accent);
-    color: var(--bg-deep-blue);
-}
-
-/* Progress Bar Styles */
-.progress-bar-bg {
-    width: 100%;
-    height: 20px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 2px solid var(--pill-blue);
-    border-radius: 10px;
-    margin: 1.5rem 0 0.5rem 0;
-    overflow: hidden;
-}
-
-#progress-bar-fill {
-    height: 100%;
-    width: 0%;
-    background-color: var(--gold-accent);
-    transition: width 0.3s ease-out, background-color 0.3s;
-}
-
-#progress-text {
-    font-size: 0.9rem;
-    color: var(--text-light);
-    text-align: center;
-}
-
-.upload-card {
-    text-align: center;
-    max-width: 500px;
-    padding: 3rem;
-}
-
-.upload-card input[type="file"],
-.upload-card input[type="number"] {
-    display: block;
-    width: 100%;
-    margin: 1.5rem 0;
-    padding: 0.8rem;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--gold-accent);
-    color: var(--text-light);
-    border-radius: 8px;
-}
+.drawer-footer { padding: 1.5rem; border-top: 1px solid var(--morta-border); }

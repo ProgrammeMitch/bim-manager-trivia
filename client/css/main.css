@@ -1,11 +1,17 @@
 :root {
-    --bg-deep-blue: #14213D;
-    --pill-blue: #1F366A;
-    --gold-accent: #D4AF37;
-    --gold-glow: rgba(212, 175, 55, 0.4);
-    --text-light: #E5E7EB;
-    --correct-green: #22C55E;
-    --incorrect-red: #EF4444;
+    /* Morta Enterprise Brand Colors */
+    --morta-mint: #E1F5F4;
+    --morta-blue: #1D63DC;
+    --morta-blue-hover: #1550B5;
+    --morta-slate: #111827;
+    --morta-surface: #FFFFFF;
+    --morta-border: #E5E7EB;
+    
+    /* Utility Colors */
+    --correct-green: #16A34A;
+    --incorrect-red: #DC2626;
+    
+    /* Typography */
     --font-digital: 'Orbitron', sans-serif;
     --font-body: 'Inter', sans-serif;
 }
@@ -17,10 +23,10 @@
 }
 
 body {
-    background-color: var(--bg-deep-blue);
-    color: var(--text-light);
+    background-color: var(--morta-mint);
+    color: var(--morta-slate);
     font-family: var(--font-body);
-    overflow: hidden; /* Prevents body scroll, drawer handles own scrolling */
+    overflow: hidden; 
 }
 
 .hidden { display: none !important; }

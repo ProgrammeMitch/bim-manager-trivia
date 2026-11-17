@@ -1,33 +1,57 @@
 document.addEventListener('DOMContentLoaded', () => {
-
     initializeBetaAccess();
 
-    const startBtn = document.getElementById('start-btn');
+    // 1. Timer Selection Logic
+    window.selectedTimeLimit = 30; // Default
+    document.querySelectorAll('.timer-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.timer-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            window.selectedTimeLimit = parseInt(e.target.getAttribute('data-time'));
+        });
+    });
+
+    // 2. Fetch Hosted Sample PDF
+    const playSampleBtn = document.getElementById('play-sample-btn');
+    if (playSampleBtn) {
+        playSampleBtn.addEventListener('click', async () => {
+            try {
+                playSampleBtn.innerText = "Loading Sample...";
+                const response = await fetch('../assets/sample-iso-19650.pdf');
+                const blob = await response.blob();
+                const sampleFile = new File([blob], "sample-iso-19650.pdf", { type: "application/pdf" });
+                handleUploadAndGenerate(sampleFile);
+            } catch (error) {
+                console.error("Failed to load sample PDF:", error);
+                alert("Could not load the sample document. Please try again.");
+                playSampleBtn.innerText = "Play Saved ISO PDF";
+            }
+        });
+    }
+
+    const startBtn = document.getElementById('generate-btn');
     if (startBtn) {
-        startBtn.addEventListener('click', handleUploadAndGenerate);
+        startBtn.addEventListener('click', () => handleUploadAndGenerate(null));
     }
 });
 
 function initializeBetaAccess() {
     const urlParams = new URLSearchParams(window.location.search);
     const emailFromUrl = urlParams.get('user');
-
     if (emailFromUrl) {
-        // Save the email to localStorage 
         localStorage.setItem('betaUserEmail', emailFromUrl.toLowerCase().trim());
-        
-        // Clean the URL bar so the user doesn't see '?user=xxx'
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
 
-async function handleUploadAndGenerate() {
+async function handleUploadAndGenerate(injectedFile = null) {
     const fileInput = document.getElementById('pdf-upload');
-    const countInput = document.getElementById('question-count');
+    const chunkInput = document.getElementById('chunk-input');
     const progressContainer = document.getElementById('progress-container');
     const progressBarFill = document.getElementById('progress-bar-fill');
     const progressText = document.getElementById('progress-text');
-    const startBtn = document.getElementById('start-btn');
+    const startBtn = document.getElementById('generate-btn');
+    const sampleBtn = document.getElementById('play-sample-btn');
 
     const userEmail = localStorage.getItem('betaUserEmail');
     if (!userEmail) {
@@ -35,43 +59,43 @@ async function handleUploadAndGenerate() {
         return;
     }
 
-    if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please upload a PDF document to begin.");
+    const fileToUpload = injectedFile || (fileInput.files && fileInput.files[0]);
+    if (!fileToUpload) {
+        alert("Please upload a PDF document or click 'Play Saved ISO PDF'.");
         return;
     }
 
-    // 1. Prepare Payload & Lock UI
+    let chunkVal = parseInt(chunkInput.value) || 10;
+    if (chunkVal < 5) chunkVal = 5;
+    if (chunkVal > 25) chunkVal = 25;
+
     const formData = new FormData();
-    formData.append('document', fileInput.files[0]);
-    formData.append('questionCount', countInput.value);
+    formData.append('document', fileToUpload);
+    formData.append('questionCount', chunkVal);
 
     progressContainer.classList.remove('hidden');
     startBtn.disabled = true;
     startBtn.textContent = "Processing...";
     progressBarFill.style.width = "0%";
-    progressBarFill.style.backgroundColor = "var(--gold-accent)";
+    progressBarFill.style.backgroundColor = "var(--morta-blue)";
 
     try {
-        // 2. Open Stream via POST request (Make sure your backend is running on port 3000)
         const response = await fetch('https://bim-manager-trivia.onrender.com/upload-and-generate', {
             method: 'POST',
-            headers: {
-                'x-user-email': userEmail // Sends the email to generateRoutes.js
-            },
+            headers: { 'x-user-email': userEmail },
             body: formData
         });
 
         if (response.status === 403) {
             const errorData = await response.json();
             alert(errorData.error);
-            localStorage.removeItem('betaUserEmail'); // Delete expired session
-            location.reload(); // Reset UI immediately
+            localStorage.removeItem('betaUserEmail');
+            location.reload(); 
             return;
         }
 
         if (!response.body) throw new Error("ReadableStream not supported by this browser.");
 
-        // 3. Read the continuous SSE stream
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let isStreaming = true;
@@ -83,10 +107,7 @@ async function handleUploadAndGenerate() {
                 break;
             }
 
-            // Decode the byte array into a string
             const chunk = decoder.decode(value, { stream: true });
-            
-            // SSE streams separate events with double newlines
             const events = chunk.split('\n\n');
             
             for (const event of events) {
@@ -97,24 +118,25 @@ async function handleUploadAndGenerate() {
                     try {
                         const parsed = JSON.parse(jsonStr);
                         
-                        // 4. Update UI Progress
                         progressBarFill.style.width = `${parsed.progress}%`;
                         progressText.textContent = `${parsed.progress}% - ${parsed.status}`;
 
-                        // 5. Handle Completion or Error
                         if (parsed.status === "COMPLETE") {
-                            // Cache locally so the user can disconnect from the internet and keep playing
                             sessionStorage.setItem('bimTriviaCache', JSON.stringify(parsed.data));
                             
-                            // Handoff to app.js
-                            if (typeof window.initGame === 'function') {
-                                window.initGame(parsed.data);
-                            }
+                            // 3. Pause Workflow: Swap buttons instead of auto-starting
+                            window.generatedQuestions = parsed.data;
+                            startBtn.classList.add('hidden');
+                            sampleBtn.parentElement.classList.add('hidden');
+                            
+                            const startQuizBtn = document.getElementById('start-quiz-btn');
+                            startQuizBtn.classList.remove('hidden');
+                            progressText.textContent = "100% - Ready! Take a breath, then click Start.";
+                            
                         } else if (parsed.status === "ERROR") {
                             throw new Error(parsed.data.message || "AI extraction failed.");
                         }
                     } catch (parseError) {
-                        // Ignore fragments that got split mid-transmission; the next chunk will complete them
                         console.warn("[Stream Parse Warning]: Incomplete chunk received.");
                     }
                 }
@@ -127,5 +149,6 @@ async function handleUploadAndGenerate() {
     } finally {
         startBtn.disabled = false;
         startBtn.textContent = "Generate Questions";
+        if(sampleBtn) sampleBtn.innerText = "Play Saved ISO PDF";
     }
 }

@@ -2,16 +2,30 @@ let gameState = {
     questions: [],
     currentIndex: 0,
     score: 0,
-    timeRemaining: 10,
+    timeLimit: 30, // Base timer dynamically populated 
+    timeRemaining: 30,
     timerId: null,
     isAnswering: false
 };
 
-// Expose globally to be called by api.js once extraction is complete
-window.initGame = function(fetchedQuestions) {
+// 1. Hook up the new manual start button
+document.addEventListener('DOMContentLoaded', () => {
+    const startQuizBtn = document.getElementById('start-quiz-btn');
+    if(startQuizBtn) {
+        startQuizBtn.addEventListener('click', () => {
+            // Pull the time limit selected in api.js, default to 30 if null
+            const selectedTime = window.selectedTimeLimit || 30;
+            initGame(window.generatedQuestions, selectedTime);
+        });
+    }
+});
+
+// Re-engineered initGame to accept the selected time limit
+window.initGame = function(fetchedQuestions, timeLimit = 30) {
     gameState.questions = fetchedQuestions;
     gameState.currentIndex = 0;
     gameState.score = 0;
+    gameState.timeLimit = timeLimit;
     
     document.getElementById('upload-view').classList.replace('active', 'hidden');
     document.getElementById('game-view').classList.replace('hidden', 'active');
@@ -20,13 +34,13 @@ window.initGame = function(fetchedQuestions) {
 };
 
 function loadNextQuestion() {
-    // Replaced location.reload() with state routing
     if (gameState.currentIndex >= gameState.questions.length) {
         return showResults();
     }
 
     gameState.isAnswering = false;
-    gameState.timeRemaining = 10;
+    // Reset remaining time to the user's chosen limit
+    gameState.timeRemaining = gameState.timeLimit; 
     
     if (typeof resetButtons === 'function') resetButtons();
     if (typeof toggleDrawer === 'function') toggleDrawer(false);
@@ -42,7 +56,6 @@ function loadNextQuestion() {
         btn.dataset.option = optKey;
         btn.querySelector('.opt-text').textContent = q.options[optKey];
         
-        // Clone and replace to strip old event listeners
         const newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
         newBtn.addEventListener('click', () => handleSelection(newBtn, optKey, q));
@@ -73,7 +86,15 @@ function handleSelection(btn, selectedOpt, questionData) {
     if (typeof highlightAnswer === 'function') highlightAnswer(btn, isCorrect);
 
     if (isCorrect) {
-        const earned = typeof calculatePoints === 'function' ? calculatePoints(gameState.timeRemaining, 10) : 0;
+        // Dynamic Multiplier Scoring
+        let multiplier = 1; // 30s tier
+        if (gameState.timeLimit === 20) multiplier = 2;
+        if (gameState.timeLimit === 10) multiplier = 3;
+
+        // Note: calculatePoints needs to be updated in engine.js to handle the multiplier, 
+        // or calculated here directly. Let's calculate it directly to be safe:
+        let earned = (100 + (gameState.timeRemaining * 10)) * multiplier;
+        
         gameState.score = typeof updateScore === 'function' ? updateScore(gameState.score, earned) : gameState.score + earned;
         if (typeof updateDisplays === 'function') updateDisplays(gameState.timeRemaining, gameState.score);
     }
@@ -98,7 +119,6 @@ function showResults() {
 }
 
 function retakeQuiz() {
-    // Shuffle the cached array so the retake isn't in the exact same order
     for (let i = gameState.questions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [gameState.questions[i], gameState.questions[j]] = [gameState.questions[j], gameState.questions[i]];
@@ -113,10 +133,9 @@ function retakeQuiz() {
     loadNextQuestion();
 }
 
-// Bind Global Navigation & Reset Buttons
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('next-question-btn')?.addEventListener('click', () => {
-        if (typeof toggleDrawer === 'function') toggleDrawer(false); // Force drawer closed on next
+        if (typeof toggleDrawer === 'function') toggleDrawer(false); 
         gameState.currentIndex++;
         loadNextQuestion();
     });
@@ -129,6 +148,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('retake-btn')?.addEventListener('click', retakeQuiz);
     document.getElementById('new-pdf-btn')?.addEventListener('click', () => location.reload());
-
 });
-

@@ -5,6 +5,7 @@
     flex-direction: column;
     align-items: center;
     padding: 2rem;
+    overflow-y: auto;
 }
 
 .game-header {
@@ -24,7 +25,7 @@
 
 #question-tracker {
     text-align: center;
-    color: var(--gold-accent);
+    color: var(--morta-slate);
     margin-bottom: 1rem;
     font-family: var(--font-digital);
 }
@@ -35,28 +36,40 @@
     gap: 1.5rem;
 }
 
+.upload-card {
+    text-align: left;
+    max-width: 600px;
+    width: 100%;
+    padding: 2rem;
+    margin: auto;
+}
+
+.settings-group {
+    background-color: var(--morta-surface);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    border: 1px solid var(--morta-border);
+}
+
+.timer-options {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.action-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
 /* Mobile Adaptation */
 @media (max-width: 768px) {
-    .view-container {
-        padding: 1rem;
-    }
-    
-    .game-header {
-        margin-bottom: 1rem;
-    }
-
-    .digital-display {
-        font-size: 1.1rem;
-        padding: 0.3rem 0.6rem;
-    }
-
-    .options-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-
-    .question-pill {
-        padding: 1rem;
-        font-size: 1rem;
-    }
+    .view-container { padding: 1rem; }
+    .game-header { margin-bottom: 1rem; }
+    .timer-options { flex-direction: column; gap: 0.5rem; }
+    .action-group { flex-direction: column; }
+    .options-grid { grid-template-columns: 1fr; gap: 1rem; }
 }

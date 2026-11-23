@@ -167,8 +167,8 @@ async function handleGenerate() {
     }
 
     let chunkVal = parseInt(chunkInput.value, 10) || 10;
-    if (chunkVal < 5) chunkVal = 5;
-    if (chunkVal > 25) chunkVal = 25;
+    if (chunkVal < 10) chunkVal = 10;
+    if (chunkVal > 15) chunkVal = 15;
     chunkInput.value = chunkVal;
 
     const uploadedFile = fileInput.files && fileInput.files[0];

@@ -4,10 +4,96 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2rem;
+    padding: 1.25rem 2rem;
     overflow-y: auto;
 }
 
+/* 2-Column Morta-Style Setup Grid (Fits on 1 Desktop Screen) */
+.setup-workspace {
+    width: 100%;
+    max-width: 1020px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: 350px minmax(0, 560px);
+    grid-template-areas:
+        ". header"
+        "sidebar controls"
+        "sidebar actions";
+    column-gap: 1.75rem;
+    row-gap: 0.9rem;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.workspace-header {
+    grid-area: header;
+}
+
+/* Matches exact height of controls + actions and scrolls internally */
+.morta-sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    height: 0;
+    min-height: 100%;
+    overflow: hidden;
+}
+
+.sidebar-top {
+    flex-shrink: 0;
+}
+
+.guidance-tree {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 0.85rem;
+    padding-right: 0.35rem;
+}
+
+.config-controls {
+    grid-area: controls;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.action-area {
+    grid-area: actions;
+}
+
+.settings-group {
+    background-color: var(--morta-surface);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--morta-border);
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.timer-options {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.action-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.upload-card {
+    text-align: left;
+    max-width: 560px;
+    width: 100%;
+    padding: 2rem;
+    margin: auto;
+    background-color: var(--morta-surface);
+    border-radius: 12px;
+    border: 1px solid var(--morta-border);
+}
+
+/* Game View Layout */
 .game-header {
     width: 100%;
     max-width: 1000px;
@@ -36,40 +122,44 @@
     gap: 1.5rem;
 }
 
-.upload-card {
-    text-align: left;
-    max-width: 600px;
-    width: 100%;
-    padding: 2rem;
-    margin: auto;
-}
+/* Mobile Adaptation: Guidance moves directly above Generate Questions */
+@media (max-width: 900px) {
+    .view-container {
+        padding: 1rem;
+    }
 
-.settings-group {
-    background-color: var(--morta-surface);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-    border: 1px solid var(--morta-border);
-}
+    .setup-workspace {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "header"
+            "controls"
+            "sidebar"
+            "actions";
+        gap: 1rem;
+        margin: 0 auto;
+    }
 
-.timer-options {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-}
+    .morta-sidebar {
+        height: auto;
+        min-height: 0;
+        max-height: 320px;
+    }
 
-.action-group {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-}
+    .game-header {
+        margin-bottom: 1rem;
+    }
 
-/* Mobile Adaptation */
-@media (max-width: 768px) {
-    .view-container { padding: 1rem; }
-    .game-header { margin-bottom: 1rem; }
-    .timer-options { flex-direction: column; gap: 0.5rem; }
-    .action-group { flex-direction: column; }
-    .options-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .timer-options {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .action-group {
+        flex-direction: column;
+    }
+
+    .options-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }

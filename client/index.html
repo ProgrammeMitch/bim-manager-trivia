@@ -1,70 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIM Competency Training</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600;700&display=swap"
-        rel="stylesheet">
+    <title>Morta | BIM Competency Training</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
 </head>
-
 <body>
 
     <!-- Onboarding & Settings Screen -->
     <section id="upload-view" class="view-container active">
-        <div class="upload-card">
-            <h1>BIM Competency Training</h1>
-            <p class="main-subtitle">An Educational Support Tool</p>
+        <div class="setup-workspace">
+            <header class="workspace-header">
+                <h1>BIM Competency Training</h1>
+                <p class="main-subtitle">An Educational Support Tool</p>
+            </header>
 
-            <!-- Assessment Intensity (Chunking) -->
-            <div class="settings-group">
-                <h3>Assessment Intensity</h3>
-                <p class="subtitle">Increase the intensity for more data chunks and more questions.</p>
-                <input type="number" id="chunk-input" min="5" max="25" value="10" class="number-input" />
-            </div>
+            <!-- Left Sidebar on Desktop / Above Generate Button on Mobile -->
+            <aside class="morta-sidebar">
+                <div class="sidebar-top">
+                    <div class="sidebar-title-row">
+                        <h3>Select Guidance</h3>
+                        <button id="clear-morta-btn" class="clear-link hidden" type="button">Clear</button>
+                    </div>
+                    <p class="subtitle">Information Management Initiative Framework (Live Morta API)</p>
+                    <input
+                        type="search"
+                        id="guidance-search"
+                        class="search-input"
+                        placeholder="Search guidance modules..."
+                        autocomplete="off"
+                    />
+                </div>
 
-            <!-- Timer Selection -->
-            <div class="settings-group">
-                <h3>Set Timer</h3>
-                <p class="subtitle">Choose your difficulty. Faster times yield higher score multipliers.</p>
-                <div class="timer-options">
-                    <button class="timer-btn" data-time="10">10s (3x Pts)</button>
-                    <button class="timer-btn" data-time="20">20s (2x Pts)</button>
-                    <button class="timer-btn active" data-time="30">30s (1x Pts)</button>
+                <div class="guidance-tree">
+                    <div class="tree-root-label">Information Management Initiative Framework</div>
+                    <ul id="morta-guidance-list" class="guidance-list">
+                        <li class="guidance-status">Loading live guidance from Morta...</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Configuration Cards -->
+            <div class="config-controls">
+                <!-- Assessment Intensity -->
+                <div class="settings-group">
+                    <h3>Assessment Intensity</h3>
+                    <p class="subtitle">Increase the intensity for more data chunks and more questions (5 to 25).</p>
+                    <input type="number" id="chunk-input" min="5" max="25" value="10" class="number-input" />
+                </div>
+
+                <!-- Timer Selection -->
+                <div class="settings-group">
+                    <h3>Set Timer</h3>
+                    <p class="subtitle">Choose your difficulty. Faster times yield higher score multipliers.</p>
+                    <div class="timer-options">
+                        <button type="button" class="timer-btn" data-time="10">10s (3x Pts)</button>
+                        <button type="button" class="timer-btn" data-time="20">20s (2x Pts)</button>
+                        <button type="button" class="timer-btn active" data-time="30">30s (1x Pts)</button>
+                    </div>
+                </div>
+
+                <!-- Custom PDF Upload (Locked when Morta Guidance is selected) -->
+                <div id="pdf-upload-card" class="settings-group">
+                    <h3>Upload Project Standard</h3>
+                    <p id="pdf-upload-subtitle" class="subtitle">Generate quiz questions from any BIM related PDF document or standard.</p>
+                    <input type="file" id="pdf-upload" accept="application/pdf" class="file-input">
                 </div>
             </div>
 
-            <!-- Standard PDF Upload -->
-            <div class="settings-group">
-                <h3>Upload Project Standard</h3>
-                <p class="subtitle">Generate quiz questions from any BIM related document or standard.</p>
-                <input type="file" id="pdf-upload" accept="application/pdf" class="file-input">
-            </div>
-
-            <!-- Action & Generation Buttons -->
-            <div class="action-group">
-                <button id="generate-btn" class="primary-btn">Generate Questions</button>
-                <button id="start-quiz-btn" class="primary-btn hidden">Start Quiz</button>
-            </div>
-
-            <!-- Loading State -->
-            <div id="progress-container" class="hidden">
-                <div class="progress-bar-bg">
-                    <div id="progress-bar-fill"></div>
+            <!-- Action Buttons & Live SSE Progress -->
+            <div class="action-area">
+                <div class="action-group">
+                    <button type="button" id="generate-btn" class="primary-btn">Generate Questions</button>
+                    <button type="button" id="start-quiz-btn" class="primary-btn hidden">Start Quiz</button>
                 </div>
-                <p id="progress-text">0% - Awaiting generation...</p>
-            </div>
 
-            <!-- Sample PDF / Frictionless Entry -->
-            <div class="settings-group sample-section" style="margin-top: 5%;">
-                <h3>Don't have a PDF handy?</h3>
-                <p class="subtitle">Run a quick simulation using our pre-loaded ISO 19650 template.</p>
-                <button id="play-sample-btn" class="secondary-btn" style="margin-top: 2%;">Play Saved ISO PDF</button>
+                <div id="progress-container" class="hidden">
+                    <div class="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+                    <p id="progress-text">0% - Awaiting generation...</p>
+                </div>
             </div>
         </div>
     </section>
@@ -87,14 +105,10 @@
             </div>
 
             <div class="options-grid">
-                <button class="option-pill" data-option="A"><span class="opt-label">A:</span> <span
-                        class="opt-text"></span></button>
-                <button class="option-pill" data-option="B"><span class="opt-label">B:</span> <span
-                        class="opt-text"></span></button>
-                <button class="option-pill" data-option="C"><span class="opt-label">C:</span> <span
-                        class="opt-text"></span></button>
-                <button class="option-pill" data-option="D"><span class="opt-label">D:</span> <span
-                        class="opt-text"></span></button>
+                <button class="option-pill" data-option="A"><span class="opt-label">A:</span> <span class="opt-text"></span></button>
+                <button class="option-pill" data-option="B"><span class="opt-label">B:</span> <span class="opt-text"></span></button>
+                <button class="option-pill" data-option="C"><span class="opt-label">C:</span> <span class="opt-text"></span></button>
+                <button class="option-pill" data-option="D"><span class="opt-label">D:</span> <span class="opt-text"></span></button>
             </div>
         </main>
 
@@ -104,9 +118,7 @@
                 <h3>EXPLANATION & REAL-WORLD SCENARIO</h3>
                 <button id="close-drawer-btn">✕</button>
             </div>
-            <div class="drawer-content" id="explanation-content">
-                <!-- AI Explanation injected here -->
-            </div>
+            <div class="drawer-content" id="explanation-content"></div>
             <div class="drawer-footer">
                 <button id="next-question-btn" class="primary-btn">NEXT QUESTION</button>
             </div>
@@ -118,12 +130,11 @@
         <div class="upload-card" style="text-align: center;">
             <h1>Session Complete!</h1>
             <p class="subtitle" style="margin-top: 0.5rem;">Your final active-recall score:</p>
-            <h2 id="final-score-display" style="color: var(--morta-blue); font-size: 3.5rem; margin: 1.5rem 0;">0 PTS
-            </h2>
+            <h2 id="final-score-display" style="color: var(--morta-blue); font-size: 3.5rem; margin: 1.5rem 0;">0 PTS</h2>
 
             <div class="action-group" style="margin-top: 2rem;">
                 <button id="retake-btn" class="primary-btn">Retake Test</button>
-                <button id="new-pdf-btn" class="secondary-btn">Upload New PDF</button>
+                <button id="new-pdf-btn" class="secondary-btn">New Session</button>
             </div>
         </div>
     </section>
@@ -133,5 +144,4 @@
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
 </body>
-
 </html>

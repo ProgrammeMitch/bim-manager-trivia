@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 
 const { buildShuffledDeck, capChunkLength } = require('../utils/mathSampler');
-const { generateQuestionsBatch } = require('../services/agentService');
+const { generateQuestionsBatch, balanceQuestionAnswers, shuffleQuestionOptions } = require('../services/agentService');
 
 describe('mathSampler token-saving rules', () => {
     it('drops short stubs, caps oversized chunks, and prioritizes BIM/ISO rule chunks', () => {
@@ -252,5 +252,36 @@ describe('Target-Driven Queue in generateRoutes (zero-token integration tests)',
         assert.equal(finalEvent.status, 'COMPLETE');
         assert.equal(finalEvent.data.length, 15, 'Maximum 15 questions must be enforced');
         assert.equal(batchCalls, 3, 'Should finish 15 questions in 3 batched calls');
+    });
+});
+
+describe('Answer randomization & anti-bias shuffling (zero-token)', () => {
+    it('redistributes 10 all-B questions evenly across A, B, C, and D without corrupting correct text', () => {
+        const biasedQuestions = Array.from({ length: 10 }, (_, i) => ({
+            question: `Question ${i + 1}`,
+            options: {
+                A: `Wrong A-${i + 1}`,
+                B: `CORRECT ANSWER ${i + 1}`,
+                C: `Wrong C-${i + 1}`,
+                D: `Wrong D-${i + 1}`
+            },
+            correctAnswer: 'B',
+            explanation: `As stated in Guidance B, Option B is correct because it follows ISO 19650.`
+        }));
+
+        const balanced = balanceQuestionAnswers(biasedQuestions);
+        const counts = { A: 0, B: 0, C: 0, D: 0 };
+
+        balanced.forEach((q, i) => {
+            counts[q.correctAnswer]++;
+            assert.equal(q.options[q.correctAnswer], `CORRECT ANSWER ${i + 1}`);
+            assert.ok(q.explanation.includes('Guidance B'), 'Must not alter BIM document names like Guidance B');
+            assert.ok(q.explanation.includes(`Option ${q.correctAnswer}`), 'Must remap explicit Option letter references');
+        });
+
+        // For 10 questions, every option letter must appear 2 or 3 times
+        for (const letter of ['A', 'B', 'C', 'D']) {
+            assert.ok(counts[letter] >= 2 && counts[letter] <= 3, `Expected ${letter} count 2-3, got ${counts[letter]}`);
+        }
     });
 });

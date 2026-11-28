@@ -5,7 +5,7 @@ const path = require('path');
 const { extractAndDiscardPDF } = require('../services/pdfService');
 const { listHubDocuments, fetchDocumentText } = require('../services/mortaService');
 const { buildShuffledDeck } = require('../utils/mathSampler');
-const { generateQuestionsBatch } = require('../services/agentService');
+const { generateQuestionsBatch, balanceQuestionAnswers } = require('../services/agentService');
 const router = express.Router();
 
 const MIN_QUESTIONS = 10;
@@ -204,7 +204,12 @@ async function runQuizGenerationPipeline(res, rawText, targetCount, sendUpdate) 
         throw new Error('Could not extract valid quiz questions from this document.');
     }
 
-    sendUpdate(100, 'COMPLETE', generatedQuestions);
+    const balancedQuestions = balanceQuestionAnswers(generatedQuestions).map((q, index) => ({
+        ...q,
+        id: index + 1
+    }));
+
+    sendUpdate(100, 'COMPLETE', balancedQuestions);
     res.end();
 }
 

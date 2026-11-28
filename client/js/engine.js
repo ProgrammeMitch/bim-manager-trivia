@@ -30,3 +30,4 @@ function updateScore(currentScore, earnedPoints) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { calculatePoints, updateScore };
 }
+

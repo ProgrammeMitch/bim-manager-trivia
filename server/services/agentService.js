@@ -2,6 +2,7 @@ const { OpenAI } = require('openai');
 const { getBIMManagerPrompt } = require('../utils/prompts');
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
 
 let cachedClient = null;
 function getOpenAIClient() {
@@ -13,7 +14,22 @@ function getOpenAIClient() {
     return cachedClient;
 }
 
+function normalizeAnswerLetter(rawAnswer) {
+    const match = String(rawAnswer || '').trim().toUpperCase().match(/\b([A-D])\b/);
+    return match ? match[1] : null;
+}
+
+function fisherYatesShuffle(items) {
+    const arr = [...items];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
 function isValidQuestionItem(item) {
+    const normalizedKey = normalizeAnswerLetter(item?.correctAnswer);
     return Boolean(
         item &&
         item.status !== 'NO_FACTS' &&
@@ -25,15 +41,92 @@ function isValidQuestionItem(item) {
         item.options.B &&
         item.options.C &&
         item.options.D &&
-        typeof item.correctAnswer === 'string' &&
+        normalizedKey &&
+        item.options[normalizedKey] &&
         typeof item.explanation === 'string'
     );
 }
 
 /**
- * Token-efficient batch generator: sends several chunks at once so the system prompt
- * is only paid once per batch instead of once per question.
+ * Shuffles a single question's A-D options and updates correctAnswer.
+ * If targetLetter is provided, places the correct answer in that exact slot.
  */
+function shuffleQuestionOptions(item, targetLetter = null) {
+    const oldCorrectKey = normalizeAnswerLetter(item.correctAnswer);
+    if (!oldCorrectKey || !item.options || !item.options[oldCorrectKey]) {
+        return item;
+    }
+
+    const chosenLetter = OPTION_LETTERS.includes(targetLetter)
+        ? targetLetter
+        : OPTION_LETTERS[Math.floor(Math.random() * OPTION_LETTERS.length)];
+
+    const distractors = fisherYatesShuffle(
+        OPTION_LETTERS
+            .filter(letter => letter !== oldCorrectKey)
+            .map(letter => ({ oldKey: letter, text: item.options[letter] }))
+    );
+
+    const newOptions = {};
+    const oldToNewMap = {};
+    let distractorIndex = 0;
+
+    for (const newKey of OPTION_LETTERS) {
+        if (newKey === chosenLetter) {
+            newOptions[newKey] = item.options[oldCorrectKey];
+            oldToNewMap[oldCorrectKey] = newKey;
+        } else {
+            const entry = distractors[distractorIndex++];
+            newOptions[newKey] = entry.text;
+            oldToNewMap[entry.oldKey] = newKey;
+        }
+    }
+
+    // Defensive single-pass remap only if the model accidentally wrote "Option B" or "Choice A"
+    const updatedExplanation = typeof item.explanation === 'string'
+        ? item.explanation.replace(/\b(Option|Choice)\s+([A-D])\b/gi, (_, prefix, letter) => {
+            const mapped = oldToNewMap[letter.toUpperCase()] || letter;
+            return `${prefix} ${mapped}`;
+        })
+        : item.explanation;
+
+    return {
+        ...item,
+        options: newOptions,
+        correctAnswer: chosenLetter,
+        explanation: updatedExplanation
+    };
+}
+
+/**
+ * Builds a balanced, randomized sequence of A-D answer slots across an entire quiz
+ * (for 10 questions: every letter appears 2 or 3 times, avoiding 3+ identical answers in a row).
+ */
+function balanceQuestionAnswers(questions) {
+    if (!Array.isArray(questions) || questions.length === 0) return [];
+
+    const slotPool = [];
+    while (slotPool.length < questions.length) {
+        slotPool.push(...fisherYatesShuffle(OPTION_LETTERS));
+    }
+
+    const targetSlots = fisherYatesShuffle(slotPool.slice(0, questions.length));
+
+    // Break up any accidental runs of 3 identical letters in a row
+    for (let i = 2; i < targetSlots.length; i++) {
+        if (targetSlots[i] === targetSlots[i - 1] && targetSlots[i] === targetSlots[i - 2]) {
+            const swapIdx = targetSlots.findIndex((letter, idx) =>
+                idx > i && letter !== targetSlots[i]
+            );
+            if (swapIdx !== -1) {
+                [targetSlots[i], targetSlots[swapIdx]] = [targetSlots[swapIdx], targetSlots[i]];
+            }
+        }
+    }
+
+    return questions.map((q, idx) => shuffleQuestionOptions(q, targetSlots[idx]));
+}
+
 async function generateQuestionsBatch(chunks, count, options = {}) {
     const {
         avoidQuestions = [],
@@ -54,6 +147,7 @@ async function generateQuestionsBatch(chunks, count, options = {}) {
         `- Generate up to ${count} distinct, non-overlapping scenario questions from the numbered passages below.`,
         '- Skip passages that contain no testable standards rules. Do not invent facts.',
         '- Return a single JSON object with exact shape: { "questions": [ { "question": "...", "options": { "A": "...", "B": "...", "C": "...", "D": "..." }, "correctAnswer": "A", "explanation": "..." } ] }.',
+        '- In explanations, refer to choices by their wording or concept, NEVER by option letters (A, B, C, or D), because answer order is shuffled programmatically.',
         '- Keep explanations concise (under 80 words each) to stay crisp and readable.'
     ].join('\n');
 
@@ -61,7 +155,6 @@ async function generateQuestionsBatch(chunks, count, options = {}) {
         .map((chunk, idx) => `--- PASSAGE ${idx + 1} ---\n${chunk}`)
         .join('\n\n');
 
-    // Compact exclusion stems keep Pass 2 deduplication cheap in tokens
     const avoidBlock = avoidQuestions.length > 0
         ? `\n\nDO NOT REPEAT OR PARAPHRASE THESE EXISTING QUESTIONS:\n${avoidQuestions.map((q, i) => `${i + 1}. ${q.slice(0, 90)}`).join('\n')}`
         : '';
@@ -88,7 +181,9 @@ async function generateQuestionsBatch(chunks, count, options = {}) {
             list = [parsed];
         }
 
-        const validQuestions = list.filter(isValidQuestionItem).slice(0, count);
+        const validQuestions = balanceQuestionAnswers(
+            list.filter(isValidQuestionItem).slice(0, count)
+        );
 
         if (response.usage) {
             console.log(
@@ -106,7 +201,6 @@ async function generateQuestionsBatch(chunks, count, options = {}) {
     }
 }
 
-// Preserved for single-chunk callers
 async function generateQuestionFromChunk(chunk, options = {}) {
     const { questions } = await generateQuestionsBatch([chunk], 1, options);
     if (questions.length === 0) {
@@ -118,5 +212,7 @@ async function generateQuestionFromChunk(chunk, options = {}) {
 module.exports = {
     generateQuestionsBatch,
     generateQuestionFromChunk,
-    isValidQuestionItem
+    isValidQuestionItem,
+    shuffleQuestionOptions,
+    balanceQuestionAnswers
 };

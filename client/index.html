@@ -73,10 +73,26 @@
             </div>
 
             <!-- Action Buttons & Live SSE Progress -->
+<!-- Action Buttons & Live SSE Progress -->
             <div class="action-area">
                 <div class="action-group">
                     <button type="button" id="generate-btn" class="primary-btn">Generate Questions</button>
                     <button type="button" id="start-quiz-btn" class="primary-btn hidden">Start Quiz</button>
+                </div>
+
+                <!-- Quiz-Gated Competency Button (Uses aria-disabled so hover tooltips always work) -->
+                <div class="competency-cta-wrap">
+                    <button
+                        type="button"
+                        id="test-competency-btn"
+                        class="competency-btn is-locked"
+                        aria-disabled="true"
+                        data-tooltip="Select an IMI Guidance module on the left to view Competency challenges."
+                        title="Select an IMI Guidance module on the left to view Competency challenges."
+                    >
+                        <span id="competency-btn-label">🔒 Test Competency</span>
+                        <span id="competency-preview-tag" class="preview-tag hidden">Preview Open</span>
+                    </button>
                 </div>
 
                 <div id="progress-container" class="hidden">
@@ -131,7 +147,7 @@
             <h1>Session Complete!</h1>
             <p class="subtitle" style="margin-top: 0.5rem;">Your final active-recall score:</p>
             <h2 id="final-score-display" style="color: var(--morta-blue); font-size: 3.5rem; margin: 1.5rem 0;">0 PTS</h2>
-
+            <p id="competency-unlock-banner" class="unlock-banner hidden"></p>
             <div class="action-group" style="margin-top: 2rem;">
                 <button id="retake-btn" class="primary-btn">Retake Test</button>
                 <button id="new-pdf-btn" class="secondary-btn">New Session</button>
@@ -139,9 +155,118 @@
         </div>
     </section>
 
+<!-- Competency Challenge & Audit Modal -->
+    <div id="competency-modal" class="comp-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="comp-modal-heading">
+        <div class="comp-modal-card">
+            <div class="comp-modal-header">
+                <div>
+                    <p id="comp-modal-guidance" class="comp-modal-eyebrow">IMI Competency</p>
+                    <h2 id="comp-modal-heading">Practical Deliverable Assessment</h2>
+                </div>
+                <button type="button" id="close-comp-modal-btn" class="comp-close-btn" aria-label="Close modal">✕</button>
+            </div>
+
+            <div class="comp-modal-body">
+                <!-- Optional Challenge Switcher (auto-visible when a guidance has 2+ challenges) -->
+                <div id="comp-challenge-tabs" class="comp-challenge-tabs hidden"></div>
+
+                <!-- Step 1: Task Brief + Morta URL Submission -->
+                <div id="comp-screen-brief">
+                    <div class="comp-meta-row">
+                        <span id="comp-difficulty-chip" class="comp-chip">Foundation</span>
+                        <span id="comp-time-chip" class="comp-chip">~8 mins</span>
+                        <span id="comp-type-chip" class="comp-chip comp-chip-blue">Morta Table</span>
+                    </div>
+
+                    <h3 id="comp-task-title" class="comp-task-title"></h3>
+                    <p id="comp-task-scenario" class="comp-scenario"></p>
+
+                    <div class="comp-box">
+                        <h4>Task Instructions</h4>
+                        <ol id="comp-task-instructions" class="comp-ordered-list"></ol>
+                    </div>
+
+                    <div id="comp-columns-box" class="comp-box">
+                        <h4>Required Columns / Structure</h4>
+                        <ul id="comp-required-columns" class="comp-col-chips"></ul>
+                    </div>
+
+                    <div class="comp-submit-zone">
+                        <label for="comp-morta-url" class="comp-label">Paste Your Morta Deliverable URL</label>
+                        <input
+                            type="url"
+                            id="comp-morta-url"
+                            class="search-input"
+                            placeholder="https://app.morta.io/hub/.../table/.../view/..."
+                            autocomplete="off"
+                        />
+                        <p class="comp-helper-note">Works with deliverables in our shared Sandbox Hub or any public Morta page.</p>
+
+                        <button type="button" id="comp-toggle-key-btn" class="clear-link comp-key-toggle">
+                            Testing from a private hub? Supply a temporary Morta API key (never stored)
+                        </button>
+                        <input
+                            type="password"
+                            id="comp-morta-key"
+                            class="search-input hidden"
+                            placeholder="Paste temporary Morta API key for this audit only"
+                            autocomplete="off"
+                        />
+                        <p id="comp-error-msg" class="comp-error hidden"></p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Live Audit Loader -->
+                <div id="comp-screen-loader" class="comp-loader-box hidden">
+                    <div class="comp-spinner"></div>
+                    <h3 id="comp-loader-title">Fetching deliverable from Morta...</h3>
+                    <p class="subtitle">Extracting rows and auditing against ISO 19650 / IMI Guidance criteria.</p>
+                </div>
+
+                <!-- Step 3: Competency Scorecard (0 to 100) -->
+                <div id="comp-screen-results" class="hidden">
+                    <div id="comp-score-banner" class="comp-score-banner">
+                        <div class="comp-score-value"><span id="comp-score-number">0</span><small>/100</small></div>
+                        <div>
+                            <span id="comp-badge-pill" class="comp-badge-pill">Competent</span>
+                            <p id="comp-deliverable-meta" class="comp-deliverable-meta"></p>
+                        </div>
+                    </div>
+
+                    <p id="comp-review-summary" class="comp-scenario"></p>
+
+                    <div class="comp-box">
+                        <h4>Criterion Breakdown</h4>
+                        <div id="comp-criteria-list" class="comp-criteria-list"></div>
+                    </div>
+
+                    <div class="comp-feedback-grid">
+                        <div class="comp-box">
+                            <h4>Strengths</h4>
+                            <ul id="comp-strengths-list" class="comp-bullet-list"></ul>
+                        </div>
+                        <div class="comp-box">
+                            <h4>Recommended Fixes</h4>
+                            <ul id="comp-improvements-list" class="comp-bullet-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="comp-modal-footer">
+                <a id="comp-open-morta-link" href="https://app.morta.io" target="_blank" rel="noopener noreferrer" class="timer-btn comp-link-btn">Open Morta ↗</a>
+                <button type="button" id="comp-back-brief-btn" class="timer-btn hidden">Revise & Re-Audit</button>
+                <button type="button" id="comp-assess-btn" class="primary-btn">Assess Deliverable</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/engine.js"></script>
+    <script src="js/competencyStore.js"></script>
     <script src="js/api.js"></script>
     <script src="js/ui.js"></script>
+    <script src="js/competencyUI.js"></script>
     <script src="js/app.js"></script>
+
 </body>
 </html>

@@ -50,6 +50,15 @@ function initializeBetaAccess() {
     }
 }
 
+window.getActiveBetaEmail = function () {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    let userEmail = localStorage.getItem('betaUserEmail');
+    if (isLocal && !userEmail) {
+        userEmail = 'chinonso2.mbagha@live.uwe.ac.uk';
+    }
+    return userEmail || null;
+};
+
 async function loadMortaGuidance() {
     const listEl = document.getElementById('morta-guidance-list');
     if (!listEl) return;
@@ -110,20 +119,26 @@ function toggleMortaSelection(doc) {
     }
 
     selectedMortaDoc = doc;
+    window.selectedMortaDoc = doc;
     setPdfUploadLocked(true);
 
     document.getElementById('clear-morta-btn')?.classList.remove('hidden');
     document.querySelectorAll('.guidance-item').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.docId === doc.publicId);
     });
+
+    window.dispatchEvent(new CustomEvent('mortaSelectionChanged', { detail: doc }));
 }
 
 function clearMortaSelection() {
     selectedMortaDoc = null;
+    window.selectedMortaDoc = null;
     setPdfUploadLocked(false);
 
     document.getElementById('clear-morta-btn')?.classList.add('hidden');
     document.querySelectorAll('.guidance-item').forEach(btn => btn.classList.remove('selected'));
+
+    window.dispatchEvent(new CustomEvent('mortaSelectionChanged', { detail: null }));
 }
 
 function setPdfUploadLocked(isLocked) {
@@ -158,7 +173,7 @@ async function handleGenerate() {
     let userEmail = localStorage.getItem('betaUserEmail');
 
     if (isLocal && !userEmail) {
-        userEmail = 'mitchmbagha@gmail.com';
+        userEmail = 'chinonso2.mbagha@live.uwe.ac.uk';
     }
 
     if (!userEmail) {

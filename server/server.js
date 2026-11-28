@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path'); // Make sure path is required
 const generateRoutes = require('./routes/generateRoutes');
+const competencyRouter = require('./routes/competencyRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.get('/', (req, res) => {
 
 // Mount the upload and generation pipeline
 app.use('/', generateRoutes);
+app.use('/', competencyRouter);
 
 // Global Error Catcher
 app.use((err, req, res, next) => {

@@ -100,7 +100,7 @@ describe('Target-Driven Queue in generateRoutes (zero-token integration tests)',
 
     before(async () => {
         tempAllowlistPath = path.join(os.tmpdir(), `allowlist-queue-${Date.now()}.json`);
-        fs.writeFileSync(tempAllowlistPath, JSON.stringify(['tester@morta.io']));
+        fs.writeFileSync(tempAllowlistPath, JSON.stringify(['chinonso2.mbagha@live.uwe.ac.uk']));
         process.env.ALLOWLIST_PATH = tempAllowlistPath;
         process.env.MOCK_AI = 'false';
 

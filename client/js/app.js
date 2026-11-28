@@ -116,6 +116,34 @@ function showResults() {
     document.getElementById('game-view').classList.replace('active', 'hidden');
     document.getElementById('results-view').classList.replace('hidden', 'active');
     document.getElementById('final-score-display').textContent = `${gameState.score} PTS`;
+
+    const unlockBanner = document.getElementById('competency-unlock-banner');
+    if (unlockBanner) {
+        unlockBanner.classList.add('hidden');
+        unlockBanner.textContent = '';
+    }
+
+    if (typeof recordQuizResultForUnlock === 'function' && window.selectedMortaDoc?.name) {
+        const email = typeof window.getActiveBetaEmail === 'function'
+            ? window.getActiveBetaEmail()
+            : localStorage.getItem('betaUserEmail');
+
+        const unlockInfo = recordQuizResultForUnlock(
+            email,
+            window.selectedMortaDoc.name,
+            gameState.score,
+            window.competencyCatalog
+        );
+
+        if (unlockBanner && unlockInfo.newlyUnlocked) {
+            unlockBanner.textContent = `⚡ Competency Unlocked for ${window.selectedMortaDoc.name}! Start a New Session and click Test Competency to take the practical exam.`;
+            unlockBanner.classList.remove('hidden');
+        }
+
+        if (typeof window.refreshCompetencyButton === 'function') {
+            window.refreshCompetencyButton();
+        }
+    }
 }
 
 function retakeQuiz() {

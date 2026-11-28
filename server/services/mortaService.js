@@ -158,11 +158,156 @@ function clearHubCache() {
     hubDocsCache = { hubId: null, fetchedAt: 0, data: null };
 }
 
+const UUID_PATTERN = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+const MAX_AUDIT_ROWS = 60;
+
+function parseMortaResourceUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') {
+        throw new Error('Please provide a valid Morta Table or Document URL.');
+    }
+
+    const trimmed = rawUrl.trim();
+    const tableMatch = trimmed.match(new RegExp(`tables?/(${UUID_PATTERN})`, 'i'));
+    if (tableMatch) {
+        return { type: 'table', id: tableMatch[1] };
+    }
+
+    const docMatch = trimmed.match(new RegExp(`documents?/(${UUID_PATTERN})`, 'i'));
+    if (docMatch) {
+        return { type: 'document', id: docMatch[1] };
+    }
+
+    throw new Error('Could not find a Morta Table (/table/...) or Document (/document/...) ID in that URL.');
+}
+
+async function mortaFetchJson(url, options = {}) {
+    const { apiKey = null, fetchImpl = fetch } = options;
+    const token = apiKey || process.env.MORTA_API_KEY || null;
+
+    const buildHeaders = (useToken) => {
+        const headers = { Accept: 'application/json' };
+        if (useToken && token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+        return headers;
+    };
+
+    let res = await fetchImpl(url, { headers: buildHeaders(true) });
+
+    // If default server key gets 403 on another user's public hub, retry unauthenticated once
+    if (res.status === 403 && !apiKey && token) {
+        const publicRes = await fetchImpl(url, { headers: buildHeaders(false) });
+        if (publicRes.ok) {
+            res = publicRes;
+        }
+    }
+
+    if (res.status === 401 || res.status === 403) {
+        throw new Error('Access denied (403). Make sure the resource is in our shared Sandbox Hub, set to Public, or provide a temporary Morta API key.');
+    }
+
+    if (!res.ok) {
+        throw new Error(`Morta API returned HTTP ${res.status} while loading deliverable.`);
+    }
+
+    return res.json();
+}
+
+function formatCellValue(value) {
+    if (value === null || value === undefined) return '';
+    if (Array.isArray(value)) return value.map(formatCellValue).filter(Boolean).join(', ');
+    if (typeof value === 'object') return String(value.name || value.label || value.title || JSON.stringify(value));
+    return String(value).replace(/\r?\n/g, ' ').replace(/\|/g, '/').trim();
+}
+
+async function fetchTableAsText(tableId, options = {}) {
+    const [metaPayload, rowsPayload] = await Promise.all([
+        mortaFetchJson(`https://api.morta.io/v1/table/${tableId}`, options),
+        mortaFetchJson(`https://api.morta.io/v1/table/${tableId}/row`, options)
+    ]);
+
+    const meta = metaPayload.data || metaPayload;
+    const rawRows = Array.isArray(rowsPayload.data)
+        ? rowsPayload.data
+        : (Array.isArray(rowsPayload) ? rowsPayload : []);
+
+    const sortedRows = [...rawRows].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    const totalRows = sortedRows.length;
+    const limitedRows = sortedRows.slice(0, MAX_AUDIT_ROWS);
+
+    let columns = Array.isArray(meta.columns)
+        ? meta.columns.map(c => c.name).filter(Boolean)
+        : [];
+
+    if (columns.length === 0 && limitedRows.length > 0) {
+        columns = Object.keys(limitedRows[0].rowData || {});
+    }
+
+    const header = `| # | ${columns.join(' | ')} |`;
+    const divider = `| --- | ${columns.map(() => '---').join(' | ')} |`;
+    const body = limitedRows.map((row, idx) => {
+        const data = row.rowData || {};
+        const cells = columns.map(col => formatCellValue(data[col]));
+        return `| ${idx + 1} | ${cells.join(' | ')} |`;
+    });
+
+    const truncationNote = totalRows > MAX_AUDIT_ROWS
+        ? `\n\n[Note: Showing first ${MAX_AUDIT_ROWS} of ${totalRows} rows to conserve tokens.]`
+        : '';
+
+    const content = [
+        `Table Name: ${cleanText(meta.name || 'Untitled Table')}`,
+        `Columns (${columns.length}): ${columns.join(', ')}`,
+        `Total Rows: ${totalRows}`,
+        '',
+        header,
+        divider,
+        ...(body.length > 0 ? body : [`| (empty) | ${columns.map(() => '').join(' | ')} |`])
+    ].join('\n') + truncationNote;
+
+    return {
+        type: 'table',
+        id: tableId,
+        name: cleanText(meta.name || 'Untitled Table'),
+        rowCount: totalRows,
+        columns,
+        content
+    };
+}
+
+async function fetchDeliverableFromUrl(rawUrl, options = {}) {
+    const parsed = parseMortaResourceUrl(rawUrl);
+
+    if (parsed.type === 'table') {
+        return fetchTableAsText(parsed.id, options);
+    }
+
+    const docPayload = await mortaFetchJson(`https://api.morta.io/v1/document/${parsed.id}`, options);
+    const doc = docPayload.data || docPayload;
+    const chunks = flattenDocumentSections(doc.children || doc.sections || []);
+
+    if (chunks.length === 0) {
+        throw new Error('No extractable text sections found in this Morta document.');
+    }
+
+    return {
+        type: 'document',
+        id: parsed.id,
+        name: cleanText(doc.name || 'Untitled Document'),
+        rowCount: null,
+        columns: null,
+        content: chunks.join('\n\n')
+    };
+}
+
 module.exports = {
     cleanText,
     extractDraftJsChunks,
     flattenDocumentSections,
     listHubDocuments,
     fetchDocumentText,
-    clearHubCache
+    clearHubCache,
+    parseMortaResourceUrl,
+    fetchTableAsText,
+    fetchDeliverableFromUrl
 };
